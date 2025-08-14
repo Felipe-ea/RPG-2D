@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RPG 2D – JS puro (sem engine)</title>
+  <title>RPG 2D</title>
   <style>
 
     :root{
@@ -18,7 +18,7 @@
     .pill b{ color:var(--accent2) }
 
     /* Caixa de diálogo */
-    .dialog { position:absolute; left:50%; bottom: 24px; transform: translateX(-50%); background: rgba(16,24,40,.85); padding: 12px 14px; width:min(920px, calc(100% - 24px)); border:1px solid rgba(255,255,255,.08); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35); display:none; pointer-events:auto; }
+    .dialog { position:absolute; left:50%; bottom: 24px; transform: translateX(-50%); background: rgba(16,24,40,.85); padding: 12px 14px; width:min(360px, calc(100% - 24px)); border:1px solid rgba(255,255,255,.08); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35); display:none; pointer-events:auto; }
     .dialog .name { font-weight:700; margin-bottom: 6px; color: var(--accent); }
     .dialog .text { line-height: 1.4; }
     .dialog .hint { font-size: 12px; opacity:.7; margin-top:8px; }
@@ -102,9 +102,9 @@
 <script>
 (() => {
   // ===== Config =====
-  const TILE = 28;
-  const MAP_W = 40;   // tiles
-  const MAP_H = 20;   // tiles
+  const TILE = 34;
+  const MAP_W = 50;   // tiles
+  const MAP_H = 30;   // tiles
   const VIEW_W = 960; // canvas width
   const VIEW_H = 540; // canvas height
   const PLAYER_SPEED = 2.2;
@@ -134,7 +134,7 @@
       }
     }
     // obstáculos aleatórios
-    for(let i=0;i<200;i++){
+    for(let i=0;i<250;i++){
       const x = 2 + (Math.random()*(MAP_W-4)|0);
       const y = 2 + (Math.random()*(MAP_H-4)|0);
       const r = Math.random();
@@ -162,11 +162,12 @@
   };
 
   const npcs = [
-    { id:'oldman', name:'Ancião', x:TILE*20, y:TILE*10, w:24, h:28, talk:[
-      'Bem-vindo às Terras Sem-Engine!',
-      'Aqui tudo foi feito na unha: render, colisão, câmera…',
+    { id:'oldman', name:'Ancião', x:TILE*7, y:TILE*5, w:24, h:28, talk:[
+      'Bem-vindo(a)!',
+      'Todo esse RPG foi feito sem Engine...',
+      'foi usado apenas HTML, CSS e JS puro!!',
       'Pressione E quando estiver perto de alguém para interagir.',
-      'Boa sorte, aventureiro!'
+      'Bom jogo!'
     ], talkIndex:0 }
   ];
 
