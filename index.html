@@ -1,0 +1,443 @@
+<!DOCTYPE html> 
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RPG 2D – JS puro (sem engine)</title>
+  <style>
+
+    :root{
+      --bg:#0b1020; --ui:#101828; --ui2:#0f172a; --ink:#e2e8f0; --accent:#7c3aed; --accent2:#22d3ee;
+    }
+    html, body { height: 100%; margin: 0; background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; }
+    #wrap { position: relative; width: 100%; height: 100%; overflow: hidden; }
+    canvas { display:block; width: 100%; height: 100%; image-rendering: pixelated; }
+    /* HUD */
+    .hud { position:absolute; inset: 0; pointer-events:none; }
+    .pill { position:absolute; left: 12px; top:12px; background: rgba(16,24,40,.7); padding:8px 12px; border-radius: 9999px; font-size: 12px; letter-spacing:.3px; backdrop-filter: blur(6px); }
+    .pill b{ color:var(--accent2) }
+
+    /* Caixa de diálogo */
+    .dialog { position:absolute; left:50%; bottom: 24px; transform: translateX(-50%); background: rgba(16,24,40,.85); padding: 12px 14px; width:min(920px, calc(100% - 24px)); border:1px solid rgba(255,255,255,.08); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35); display:none; pointer-events:auto; }
+    .dialog .name { font-weight:700; margin-bottom: 6px; color: var(--accent); }
+    .dialog .text { line-height: 1.4; }
+    .dialog .hint { font-size: 12px; opacity:.7; margin-top:8px; }
+
+    /* Botões mobile */
+    .mobile { position:absolute; inset:0; pointer-events:none; }
+    .dpad { position:absolute; left: 14px; bottom: 14px; pointer-events:auto; }
+    .btn { width:64px; height:64px; border-radius:50%; background:rgba(16,24,40,.6); border:1px solid rgba(255,255,255,.08); box-shadow: inset 0 0 0 2px rgba(255,255,255,.03); }
+    .grid { display:grid; grid-template-columns: 64px 64px 64px; gap:8px; }
+    .btn:active { transform: scale(.96); }
+    .act { position:absolute; right: 16px; bottom: 24px; pointer-events:auto; display:flex; gap:12px; }
+
+    .kbd { display:inline-flex; gap:6px; align-items:center; background:rgba(255,255,255,.08); border-radius:8px; padding:2px 6px; font-size:12px; }
+    .kbd kbd{ background:rgba(0,0,0,.4); border-radius:4px; padding:2px 6px; font-weight:700; }
+
+    /* Debug toggle */
+    .debug { position:absolute; right:12px; top:12px; pointer-events:auto; background:rgba(16,24,40,.7); border:1px solid rgba(255,255,255,.1); padding:6px 10px; border-radius:10px; cursor:pointer; }
+  
+    .controls {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    z-index: 10;
+  }
+  .row {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+  }
+  .btn {
+    width: 50px;
+    height: 50px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    color: #fff;
+    user-select: none;
+  }
+    
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <canvas id="game" width="960" height="540" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; margin: auto;"></canvas>
+    <div class="hud">
+      <div class="pill">RPG 2D – JS Puro • Mova-se com <span class="kbd"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span> ou setas • Interagir: <span class="kbd"><kbd>E</kbd></span></div>
+      <button id="btnDebug" class="debug" title="Alternar debug">Debug</button>
+    </div>
+    <div id="dialog" class="dialog" role="dialog" aria-live="polite">
+      <div class="name" id="dlgName">NPC</div>
+      <div class="text" id="dlgText">Olá, aventureiro!</div>
+      <div class="hint">Pressione <span class="kbd"><kbd>E</kbd></span> para continuar…</div>
+    </div>
+
+    <!-- Controles mobile -->
+    <div class="mobile" aria-hidden="true">
+      <div class="dpad">
+        <div class="grid">
+        <div class="controls">
+            <div class="row"><button class="btn" data-key="ArrowUp">▲</button></div>
+            <div class="row">
+                <button class="btn" data-key="ArrowLeft">◀</button>
+                <button class="btn" data-key="ArrowDown">▼</button>
+                <button class="btn" data-key="ArrowRight">▶</button>
+            </div>
+        </div>
+        </div>
+      </div>
+      <div class="act">
+        <button class="btn" data-key="KeyE" style="width:65px;height:65px;">E</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ===== Config =====
+  const TILE = 28;
+  const MAP_W = 40;   // tiles
+  const MAP_H = 20;   // tiles
+  const VIEW_W = 960; // canvas width
+  const VIEW_H = 540; // canvas height
+  const PLAYER_SPEED = 2.2;
+
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const wrap = document.getElementById('wrap');
+
+  const keys = Object.create(null);
+  let debug = false;
+
+  // ===== Map Tile Types =====
+  // 0: chão (walkable), 1: parede/rocha (sólido), 2: grama (walkable), 3: água (sólido), 4: trilha (walkable)
+  // você pode expandir facilmente estes tipos
+
+  // Gera um mapa simples com borda sólida e alguns obstáculos
+  const map = new Uint8Array(MAP_W * MAP_H);
+  function idx(x,y){ return y*MAP_W + x; }
+
+  function generateMap(){
+    for(let y=0;y<MAP_H;y++){
+      for(let x=0;x<MAP_W;x++){
+        const isBorder = x===0||y===0||x===MAP_W-1||y===MAP_H-1;
+        if(isBorder){ map[idx(x,y)] = 1; continue; }
+        // base: chão (0) e grama (2)
+        map[idx(x,y)] = Math.random() < 0.2 ? 2 : 0;
+      }
+    }
+    // obstáculos aleatórios
+    for(let i=0;i<200;i++){
+      const x = 2 + (Math.random()*(MAP_W-4)|0);
+      const y = 2 + (Math.random()*(MAP_H-4)|0);
+      const r = Math.random();
+      map[idx(x,y)] = r < 0.1 ? 3 : 1; // 10% água, senão rocha
+    }
+    // uma trilha horizontal
+    const ty = MAP_H/2;
+    for(let x=2;x<MAP_W-2;x++) map[idx(x,ty)] = 4;
+  }
+
+  generateMap();
+
+  function tileAt(tx,ty){
+    if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H) return 1; // fora = sólido
+    return map[idx(tx,ty)];
+  }
+  function isSolid(type){ return type===1||type===3; }
+
+  // ===== Entidades =====
+  const player = {
+    x: TILE*5, y: TILE*5,
+    w: 20, h: 24, // corpo para colisão
+    speed: PLAYER_SPEED,
+    dirX: 0, dirY: 1, // para animação
+  };
+
+  const npcs = [
+    { id:'oldman', name:'Ancião', x:TILE*20, y:TILE*10, w:24, h:28, talk:[
+      'Bem-vindo às Terras Sem-Engine!',
+      'Aqui tudo foi feito na unha: render, colisão, câmera…',
+      'Pressione E quando estiver perto de alguém para interagir.',
+      'Boa sorte, aventureiro!'
+    ], talkIndex:0 }
+  ];
+
+  // ===== Diálogo =====
+  const $dialog = document.getElementById('dialog');
+  const $dlgName = document.getElementById('dlgName');
+  const $dlgText = document.getElementById('dlgText');
+  let activeTalk = null; // {npc}
+
+  function openDialog(npc){
+    activeTalk = npc;
+    $dlgName.textContent = npc.name;
+    $dlgText.textContent = npc.talk[npc.talkIndex] || '';
+    $dialog.style.display = 'block';
+  }
+  function nextDialog(){
+    if(!activeTalk) return;
+    activeTalk.talkIndex++;
+    if(activeTalk.talkIndex >= activeTalk.talk.length){
+      closeDialog();
+      return;
+    }
+    $dlgText.textContent = activeTalk.talk[activeTalk.talkIndex];
+  }
+  function closeDialog(){
+    if(activeTalk) activeTalk.talkIndex = 0;
+    activeTalk = null;
+    $dialog.style.display = 'none';
+  }
+
+  // ===== Entrada (teclado + mobile) =====
+  window.addEventListener('keydown', (e)=>{
+    keys[e.code] = true; keys[e.key] = true; // aceita code e key
+    if(e.code==='KeyE'){
+      if(activeTalk) nextDialog(); else tryInteract();
+    }
+    if(e.code==='Escape') closeDialog();
+  });
+  window.addEventListener('keyup', (e)=>{ keys[e.code] = false; keys[e.key] = false; });
+
+  // Mobile: botões que simulam teclas
+  document.querySelectorAll('[data-key]').forEach(btn=>{
+    const code = btn.getAttribute('data-key');
+    btn.addEventListener('touchstart', (e)=>{ e.preventDefault(); keys[code]=true; if(code==='KeyE'){ if(activeTalk) nextDialog(); else tryInteract(); } });
+    btn.addEventListener('touchend', (e)=>{ e.preventDefault(); keys[code]=false; });
+  });
+
+  // ===== Colisão (AABB com tiles) =====
+  function rectVsMap(nx, ny, w, h){
+    // retorna posição corrigida (cx, cy)
+    let cx = nx, cy = ny;
+    // amostrar tiles nos quatro cantos
+    const left = Math.floor((cx - w/2)/TILE);
+    const right= Math.floor((cx + w/2 - 1)/TILE);
+    const top  = Math.floor((cy - h)/TILE);
+    const bottom=Math.floor((cy - 1)/TILE);
+
+    // checar vertical por linhas
+    // mover para cima: testar top
+    if(ny < player.y){
+      for(let tx=left; tx<=right; tx++){
+        if(isSolid(tileAt(tx, top))){
+          cy = (top+1)*TILE + h; // empurra para baixo da borda
+          break;
+        }
+      }
+    }
+    // mover para baixo: testar bottom
+    if(ny > player.y){
+      for(let tx=left; tx<=right; tx++){
+        if(isSolid(tileAt(tx, bottom))){
+          cy = bottom*TILE; // empurra para cima da borda
+          break;
+        }
+      }
+    }
+
+    // recomputar colunas com cy corrigido
+    const left2 = Math.floor((nx - w/2)/TILE);
+    const right2= Math.floor((nx + w/2 - 1)/TILE);
+    const top2  = Math.floor((cy - h)/TILE);
+    const bottom2=Math.floor((cy - 1)/TILE);
+
+    // mover para esquerda: testar left
+    if(nx < player.x){
+      for(let ty=top2; ty<=bottom2; ty++){
+        if(isSolid(tileAt(left2, ty))){
+          cx = (left2+1)*TILE + w/2; // empurra pra direita
+          break;
+        }
+      }
+    }
+    // mover para direita: testar right
+    if(nx > player.x){
+      for(let ty=top2; ty<=bottom2; ty++){
+        if(isSolid(tileAt(right2, ty))){
+          cx = right2*TILE - w/2; // empurra pra esquerda
+          break;
+        }
+      }
+    }
+
+    return {x:cx, y:cy};
+  }
+
+  function tryInteract(){
+    // se algum NPC estiver próximo, abrir diálogo
+    const range = 28;
+    for(const n of npcs){
+      if(Math.abs((n.x) - player.x) < range && Math.abs((n.y) - (player.y-8)) < range){
+        openDialog(n); return;
+      }
+    }
+  }
+
+  // ===== Câmera =====
+  const camera = { x:0, y:0 };
+  function updateCamera(){
+    camera.x = Math.max(0, Math.min(player.x - VIEW_W/2, MAP_W*TILE - VIEW_W));
+    camera.y = Math.max(0, Math.min(player.y - VIEW_H/2, MAP_H*TILE - VIEW_H));
+  }
+
+  // ===== Render =====
+  function drawTile(type, sx, sy){
+    // desenha tiles com estilos simples (sem imagens) – substitua por sprites conforme desejar
+    switch(type){
+      case 0: // chão
+        ctx.fillStyle = '#1f2937'; break;
+      case 2: // grama
+        ctx.fillStyle = '#14532d'; break;
+      case 3: // água (sólido)
+        ctx.fillStyle = '#0ea5e9'; break;
+      case 4: // trilha
+        ctx.fillStyle = '#7c3aed'; break;
+      default: // rocha/parede (sólido)
+        ctx.fillStyle = '#111827';
+    }
+    ctx.fillRect(sx, sy, TILE, TILE);
+
+    if(debug){
+      if(isSolid(type)){
+        ctx.strokeStyle = 'rgba(255,0,0,.6)';
+        ctx.strokeRect(sx+0.5, sy+0.5, TILE-1, TILE-1);
+      }
+    }
+  }
+
+  function drawNPC(n){
+    const sx = n.x - camera.x; const sy = n.y - camera.y;
+    // base (sombrinha)
+    ctx.fillStyle = 'rgba(0,0,0,.25)';
+    ctx.beginPath(); ctx.ellipse(sx, sy+2, 10, 4, 0, 0, Math.PI*2); ctx.fill();
+    // corpo
+    ctx.fillStyle = '#eab308';
+    ctx.fillRect(sx-8, sy-26, 16, 22);
+    // cabeça
+    ctx.fillStyle = '#fde68a';
+    ctx.fillRect(sx-7, sy-34, 14, 10);
+    // detalhe
+    ctx.fillStyle = '#0f172a'; ctx.fillRect(sx-6, sy-20, 12, 2);
+
+    if(debug){
+      ctx.strokeStyle = 'cyan';
+      ctx.strokeRect(sx-n.w/2+0.5, sy-n.h+0.5, n.w-1, n.h-1);
+    }
+  }
+
+  function drawPlayer(){
+    const sx = player.x - camera.x; const sy = player.y - camera.y;
+    // sombra
+    ctx.fillStyle = 'rgba(0,0,0,.3)';
+    ctx.beginPath(); ctx.ellipse(sx, sy, 10, 4, 0, 0, Math.PI*2); ctx.fill();
+    // corpo
+    ctx.fillStyle = '#22d3ee';
+    ctx.fillRect(sx-8, sy-24, 16, 20);
+    // cabeça
+    ctx.fillStyle = '#e5e7eb';
+    ctx.fillRect(sx-7, sy-32, 14, 10);
+
+    if(debug){
+      ctx.strokeStyle = 'yellow';
+      ctx.strokeRect(sx-player.w/2+0.5, sy-player.h+0.5-player.h, player.w-1, player.h-1);
+    }
+  }
+
+  function render(){
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+
+    // fundo (paralaxe simples)
+    ctx.fillStyle = '#0b1020';
+    ctx.fillRect(0,0,canvas.width, canvas.height);
+
+    // desenhar apenas região visível
+    const startX = Math.floor(camera.x / TILE);
+    const startY = Math.floor(camera.y / TILE);
+    const endX = Math.ceil((camera.x + VIEW_W) / TILE);
+    const endY = Math.ceil((camera.y + VIEW_H) / TILE);
+
+    for(let ty=startY; ty<endY; ty++){
+      for(let tx=startX; tx<endX; tx++){
+        const t = tileAt(tx,ty);
+        const sx = tx*TILE - camera.x;
+        const sy = ty*TILE - camera.y;
+        drawTile(t, sx, sy);
+      }
+    }
+
+    // NPCs
+    for(const n of npcs){ drawNPC(n); }
+
+    // Player
+    drawPlayer();
+
+    // UI extra em debug
+    if(debug){
+      ctx.fillStyle = 'rgba(0,0,0,.5)';
+      ctx.fillRect(8, canvas.height-52, 260, 44);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = '12px monospace';
+      ctx.fillText(`Player: (${player.x.toFixed(1)}, ${player.y.toFixed(1)})`, 14, canvas.height-32);
+      ctx.fillText(`Camera: (${camera.x.toFixed(1)}, ${camera.y.toFixed(1)})`, 14, canvas.height-16);
+    }
+  }
+
+  // ===== Update =====
+  function update(){
+    let dx = 0, dy = 0;
+    if(keys['KeyW'] || keys['ArrowUp']) dy -= 1;
+    if(keys['KeyS'] || keys['ArrowDown']) dy += 1;
+    if(keys['KeyA'] || keys['ArrowLeft']) dx -= 1;
+    if(keys['KeyD'] || keys['ArrowRight']) dx += 1;
+
+    // normaliza diagonal
+    if(dx!==0 && dy!==0){ dx*=Math.SQRT1_2; dy*=Math.SQRT1_2; }
+
+    const nx = player.x + dx*player.speed;
+    const ny = player.y + dy*player.speed;
+
+    const col = rectVsMap(nx, ny, player.w, player.h);
+    player.x = col.x; player.y = col.y;
+
+    if(dx||dy){ player.dirX = Math.sign(dx); player.dirY = Math.sign(dy); }
+
+    updateCamera();
+  }
+
+  // ===== Loop =====
+  let last = 0;
+  function loop(ts){
+    const dt = (ts - last) / 1000; last = ts; // reservado para futuras animações
+    update();
+    render();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // ===== Resize =====
+  function fitCanvas(){
+    // Mantém proporção 16:9 baseada em VIEW_W/H
+    const r = VIEW_W / VIEW_H;
+    let w = wrap.clientWidth, h = wrap.clientHeight;
+    if(w/h > r){ w = h*r; } else { h = w/r; }
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+  }
+  window.addEventListener('resize', fitCanvas); fitCanvas();
+
+  // ===== Botão debug =====
+  document.getElementById('btnDebug').addEventListener('click', ()=>{ debug = !debug; });
+
+})();
+</script>
+</body>
+</html>
