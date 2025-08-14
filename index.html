@@ -18,7 +18,7 @@
     .pill b{ color:var(--accent2) }
 
     /* Caixa de diálogo */
-    .dialog { position:absolute; left:50%; bottom: 24px; transform: translateX(-50%); background: rgba(16,24,40,.85); padding: 12px 14px; width:min(360px, calc(100% - 24px)); border:1px solid rgba(255,255,255,.08); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35); display:none; pointer-events:auto; }
+    .dialog { position:absolute; left:50%; bottom: 104px; transform: translateX(-50%); background: rgba(16,24,40,.85); padding: 12px 14px; width:min(360px, calc(100% - 24px)); border:1px solid rgba(255,255,255,.08); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35); display:none; pointer-events:auto; }
     .dialog .name { font-weight:700; margin-bottom: 6px; color: var(--accent); }
     .dialog .text { line-height: 1.4; }
     .dialog .hint { font-size: 12px; opacity:.7; margin-top:8px; }
@@ -52,8 +52,8 @@
     gap: 5px;
   }
   .btn {
-    width: 50px;
-    height: 50px;
+    width: 65px;
+    height: 65px;
     background: rgba(255,255,255,0.3);
     border-radius: 8px;
     display: flex;
@@ -68,11 +68,12 @@
 </head>
 <body>
   <div id="wrap">
-    <canvas id="game" width="960" height="540" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; margin: auto;"></canvas>
-    <div class="hud">
-      <div class="pill">RPG 2D – JS Puro • Mova-se com <span class="kbd"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span> ou setas • Interagir: <span class="kbd"><kbd>E</kbd></span></div>
+    <canvas id="game" width="1380" height="540" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; margin: auto;"></canvas>
+<!--<div class="hud">
+      <div class="pill">RPG 2D • Mova-se com <span class="kbd"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span> ou setas • Interagir: <span class="kbd"><kbd>E</kbd></span></div>
       <button id="btnDebug" class="debug" title="Alternar debug">Debug</button>
     </div>
+  -->
     <div id="dialog" class="dialog" role="dialog" aria-live="polite">
       <div class="name" id="dlgName">NPC</div>
       <div class="text" id="dlgText">Olá, aventureiro!</div>
@@ -102,12 +103,12 @@
 <script>
 (() => {
   // ===== Config =====
-  const TILE = 34;
+  const TILE = 50;
   const MAP_W = 50;   // tiles
   const MAP_H = 30;   // tiles
-  const VIEW_W = 960; // canvas width
+  const VIEW_W = 1380; // canvas width
   const VIEW_H = 540; // canvas height
-  const PLAYER_SPEED = 2.2;
+  const PLAYER_SPEED = 3.2;
 
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
@@ -342,10 +343,10 @@
     ctx.beginPath(); ctx.ellipse(sx, sy, 10, 4, 0, 0, Math.PI*2); ctx.fill();
     // corpo
     ctx.fillStyle = '#22d3ee';
-    ctx.fillRect(sx-8, sy-24, 16, 20);
+    ctx.fillRect(sx-8, sy-24, 34, 40);
     // cabeça
     ctx.fillStyle = '#e5e7eb';
-    ctx.fillRect(sx-7, sy-32, 14, 10);
+    ctx.fillRect(sx-3.5, sy-42, 24, 20);
 
     if(debug){
       ctx.strokeStyle = 'yellow';
