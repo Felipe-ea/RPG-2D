@@ -164,11 +164,36 @@
 
   const npcs = [
     { id:'oldman', name:'Ancião', x:TILE*7, y:TILE*5, w:24, h:28, talk:[
-      'Bem-vindo(a)!',
+      'Bem-vindo jovem padawan!',
       'Todo esse RPG foi feito sem Engine...',
       'foi usado apenas HTML, CSS e JS puro!!',
       'Pressione E quando estiver perto de alguém para interagir.',
       'Bom jogo!'
+    ], talkIndex:0 },
+
+    { id:'oldman', name:'Desenvolvedor', x:TILE*10, y:TILE*15, w:24, h:28, talk:[
+      'Todo o jogo foi desenvolvido em apenas um aquivo .HTML',
+      'O código fonte está todo disponível no meu GitHub...',
+      'Pode ir lá dar uma olhada se quiser'
+    ], talkIndex:0 },
+
+    { id:'oldman', name:'Desenvolvedor', x:TILE*23, y:TILE*16, w:24, h:28, talk:[
+      'A lógica do game foi toda implementada em javaScript',
+      'Apenas uma tag <script> foi suficiente pra definir todas as interações>'
+    ], talkIndex:0 },
+
+    { id:'oldman', name:'Desenvolvedor', x:TILE*32, y:TILE*10, w:24, h:28, talk:[
+      'A parte gráfica foi feita com o elemento Canvas...',
+      'O Canvas é um container do HTML...',
+      'Ele permite criar e manipular elementos gráficos da web',
+      'E o melhor, usando apenas JavaScript'
+    ], talkIndex:0 },
+
+    { id:'oldman', name:'Ancião', x:TILE*15, y:TILE*23, w:24, h:28, talk:[
+      'Se gostou do projeto da uma moral lá no LinkedIn',
+      'Vou deixar o caminho na próxima interação...',
+      'https://www.linkedin.com/in/devfelipesilva/',
+      'Que a força esteja com você.'
     ], talkIndex:0 }
   ];
 
@@ -323,12 +348,12 @@
     ctx.beginPath(); ctx.ellipse(sx, sy+2, 10, 4, 0, 0, Math.PI*2); ctx.fill();
     // corpo
     ctx.fillStyle = '#eab308';
-    ctx.fillRect(sx-8, sy-26, 16, 22);
+    ctx.fillRect(sx-8, sy-24, 30, 36);
     // cabeça
     ctx.fillStyle = '#fde68a';
-    ctx.fillRect(sx-7, sy-34, 14, 10);
+    ctx.fillRect(sx-4, sy-42, 22, 18);
     // detalhe
-    ctx.fillStyle = '#0f172a'; ctx.fillRect(sx-6, sy-20, 12, 2);
+    ctx.fillStyle = '#0f172a'; ctx.fillRect(sx-1.5, sy-20, 12, 2);
 
     if(debug){
       ctx.strokeStyle = 'cyan';
